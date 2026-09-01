@@ -2,6 +2,7 @@
 
 我的世界 Java 版纯净生存服务器的宣传单页站。**纯静态**（HTML + CSS + JS），无任何后端，无外部依赖，托管成本为 0。
 
+- 🌐 站点上线地址：https://upkea.github.io/mc-server-site/
 - 服务器地址：`play.simpfun.cn:19573`
 - 游戏版本：Java 版 1.20.1
 - QQ 群：1107711066
