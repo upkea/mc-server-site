@@ -135,24 +135,41 @@ var GROUP = {
     }
   }
 
-  function fetchStatus() {
-    var url = 'https://api.mcsrvstat.us/3/' + encodeURIComponent(SERVER.address);
+  function fetchJson(url, timeoutMs) {
     var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 6000);
-
-    fetch(url, ctrl ? { signal: ctrl.signal } : {})
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, timeoutMs || 7000);
+    return fetch(url, ctrl ? { signal: ctrl.signal } : {})
       .then(function (res) {
+        clearTimeout(timer);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         return res.json();
       })
-      .then(function (data) {
+      .catch(function (err) {
         clearTimeout(timer);
-        renderStatus(data && data.online ? 'online' : 'offline', data);
-      })
-      .catch(function () {
-        clearTimeout(timer);
-        renderStatus('unknown');
+        throw err;
       });
+  }
+
+  function fetchStatus() {
+    // 双接口交叉验证：mcsrvstat.us 海外节点对部分国内服务器会误报离线，
+    // 所以同时查 mcstatus.io，任一接口确认在线即显示在线。
+    var urls = [
+      'https://api.mcsrvstat.us/3/' + encodeURIComponent(SERVER.address),
+      'https://api.mcstatus.io/v2/status/java/' + encodeURIComponent(SERVER.address)
+    ];
+
+    Promise.all(urls.map(function (u) {
+      return fetchJson(u).catch(function () { return null; });
+    })).then(function (results) {
+      var a = results[0];
+      var b = results[1];
+      if (a && a.online) { renderStatus('online', a); return; }
+      if (b && b.online) { renderStatus('online', b); return; }
+      if (a || b) { renderStatus('offline'); return; }
+      renderStatus('unknown');
+    }).catch(function () {
+      renderStatus('unknown');
+    });
   }
 
   fetchStatus();
