@@ -15,9 +15,9 @@ var GROUP = {
   uin: SERVER.group,
   // 手机端一键加群跳转（无需 key，打开群卡片后点「申请加入」）
   mobileUrl: 'mqqapi://card/show_pslcard?src_type=internal&version=1&uin=' + SERVER.group,
-  // 官方加群链接（可选，更通用）：在 QQ 群管理 → 加群设置 → 加群链接 里生成
-  // 形如 https://qm.qq.com/q/xxxx 的链接后填到这里，所有设备都会直接跳官方加群页。
-  officialUrl: ''
+  // 官方加群链接（群管理 → 加群设置 → 加群链接 生成，qm.qq.com 或 qun.qq.com 均可）
+  // 填了之后所有设备都会直接跳转官方加群页；链接失效时重新生成替换即可
+  officialUrl: 'https://qun.qq.com/universal-share/share?ac=1&authKey=yl%2BgEDRbTe%2FP06c%2FSRcxj%2BootHd3ba2ce%2BgNr7cZTyzfCy%2FfOma1l2J8c2TLLiPh&busi_data=eyJncm91cENvZGUiOiIxMTA3NzExMDY2IiwidG9rZW4iOiI3STd3aEZpdjRlSUpxVkswUzhNUkVUdnNxcklucno3SVN2dEpkSENpdmxUM0pKZmV6V3NWZjlHSHBZWmwvOTIzIiwidWluIjoiMTk1NDQ5NTM5MiJ9&data=A3tvyKbE9Tn2HPwtYas1UdySpJ_4fcueKZMwAnxHsi9JNzzqNQu4xy9VF4_PyJkWHcsDvcYhNmnL6wbZNuim6Q&svctype=4&tempid=h5_group_info'
 };
 
 (function () {
@@ -82,14 +82,16 @@ var GROUP = {
     var btn = e.target.closest('[data-join-group]');
     if (!btn) return;
 
-    // 填了官方链接则所有设备直接跳官方加群页
+    var ua = navigator.userAgent || '';
+    var isMobile = /Android|iPhone|iPad|iPod|Windows Phone|MQQBrowser|MicroMessenger/i.test(ua);
+
     if (GROUP.officialUrl) {
-      window.open(GROUP.officialUrl, '_blank', 'noopener');
+      // 官方加群链接：手机端当前页跳转（更稳），电脑端新标签打开
+      if (isMobile) { window.location.href = GROUP.officialUrl; }
+      else { window.open(GROUP.officialUrl, '_blank', 'noopener'); }
       return;
     }
 
-    var ua = navigator.userAgent || '';
-    var isMobile = /Android|iPhone|iPad|iPod|Windows Phone|MQQBrowser|MicroMessenger/i.test(ua);
     if (isMobile) {
       // 手机端：跳转 QQ 群卡片（打开后点「申请加入」）
       window.location.href = GROUP.mobileUrl;
