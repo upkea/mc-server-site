@@ -7,7 +7,7 @@
 
 var SERVER = {
   address: 'play.simpfun.cn:19573', // 服务器地址（含端口）
-  version: 'Java 版 1.21.1',        // 游戏版本
+  version: 'Java 版 1.20 – 1.21.8',  // 游戏版本（服务器实测支持范围）
   group: '1107711066'               // QQ 群号
 };
 
