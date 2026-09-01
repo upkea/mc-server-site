@@ -4,7 +4,7 @@
 
 - 🌐 站点上线地址：https://upkea.github.io/mc-server-site/
 - 服务器地址：`play.simpfun.cn:19573`
-- 游戏版本：Java 版 1.20.1
+- 游戏版本：Java 版 1.21.1
 - QQ 群：1107711066
 
 ---
@@ -27,14 +27,10 @@ mc-server-site/
 ```js
 var SERVER = {
   address: 'play.simpfun.cn:19573', // 服务器地址（含端口）
-  version: 'Java 版 1.20.1',        // 游戏版本
+  version: 'Java 版 1.21.1',        // 游戏版本
   group: '1107711066'               // QQ 群号
 };
 ```
-
-> ⚠️ 注意：你提供的服务器名称写的是「1.21.1」，但服务器类型里写的是「1.20.1」。
-> 当前网站按 **1.20.1** 显示（`SERVER.version` 和 index.html 中「游戏版本」一行）。
-> 如果实际版本是 1.21.1，改 `SERVER.version` 和 index.html 里的版本文字即可。
 
 要修改页面文案（简介、特色、规则等），直接编辑 `index.html` 对应小节。
 
