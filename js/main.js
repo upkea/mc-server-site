@@ -11,6 +11,15 @@ var SERVER = {
   group: '1107711066'               // QQ 群号
 };
 
+var GROUP = {
+  uin: SERVER.group,
+  // 手机端一键加群跳转（无需 key，打开群卡片后点「申请加入」）
+  mobileUrl: 'mqqapi://card/show_pslcard?src_type=internal&version=1&uin=' + SERVER.group,
+  // 官方加群链接（可选，更通用）：在 QQ 群管理 → 加群设置 → 加群链接 里生成
+  // 形如 https://qm.qq.com/q/xxxx 的链接后填到这里，所有设备都会直接跳官方加群页。
+  officialUrl: ''
+};
+
 (function () {
   'use strict';
 
@@ -40,6 +49,16 @@ var SERVER = {
     document.body.removeChild(ta);
   }
 
+  function flash(btn, copied) {
+    var label = btn.getAttribute('data-label') || btn.textContent;
+    btn.classList.add('is-copied');
+    btn.textContent = copied;
+    setTimeout(function () {
+      btn.classList.remove('is-copied');
+      btn.textContent = label;
+    }, 1600);
+  }
+
   document.addEventListener('click', function (e) {
     var btn = e.target.closest('[data-copy]');
     if (!btn) return;
@@ -51,15 +70,39 @@ var SERVER = {
     } else {
       fallbackCopy(text);
     }
+    flash(btn, btn.getAttribute('data-copied') || '已复制 ✓');
+  });
 
-    var label = btn.getAttribute('data-label') || btn.textContent;
-    var copied = btn.getAttribute('data-copied') || '已复制 ✓';
-    btn.classList.add('is-copied');
-    btn.textContent = copied;
-    setTimeout(function () {
-      btn.classList.remove('is-copied');
-      btn.textContent = label;
-    }, 1600);
+  /* ---------- 2.5 一键加群 ---------- */
+  document.querySelectorAll('[data-join-group-key]').forEach(function (el) {
+    el.setAttribute('data-join-group', SERVER.group);
+  });
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-join-group]');
+    if (!btn) return;
+
+    // 填了官方链接则所有设备直接跳官方加群页
+    if (GROUP.officialUrl) {
+      window.open(GROUP.officialUrl, '_blank', 'noopener');
+      return;
+    }
+
+    var ua = navigator.userAgent || '';
+    var isMobile = /Android|iPhone|iPad|iPod|Windows Phone|MQQBrowser|MicroMessenger/i.test(ua);
+    if (isMobile) {
+      // 手机端：跳转 QQ 群卡片（打开后点「申请加入」）
+      window.location.href = GROUP.mobileUrl;
+      return;
+    }
+
+    // 电脑端：复制群号，提示到 QQ 搜索加群
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(GROUP.uin).catch(function () { fallbackCopy(GROUP.uin); });
+    } else {
+      fallbackCopy(GROUP.uin);
+    }
+    flash(btn, '群号已复制 ✓');
   });
 
   /* ---------- 3. 服务器在线状态（mcsrvstat.us 免费 API） ---------- */
