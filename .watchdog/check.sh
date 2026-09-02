@@ -52,7 +52,7 @@ if [ -n "$KEY" ]; then
   now=$(date '+%m-%d %H:%M')
   if [ "$NEW" = "offline" ] && [ "$PREV" = "online" ]; then
     echo ">>> 发送掉线提醒"
-    curl -sS --max-time 15 -X POST "https://sctapi.ftqq.com/${KEY}.send" \
+    resp=$(curl -sS --max-time 15 -X POST "https://sctapi.ftqq.com/${KEY}.send" \
       --data-urlencode "title=🔴 纯净生存服务器 掉线提醒" \
       --data-urlencode "desp=**服务器 ${SERVER} 检测到未开服**（${now}）
 
@@ -61,16 +61,18 @@ if [ -n "$KEY" ]; then
 请前往 **简幻欢（SimpFun）控制面板**：
 如已完成今日签到，直接点击「启动」；若提示需先签到，请先完成微信小程序签到再启动。
 
-状态详情：https://upkea.github.io/mc-server-site/" >/dev/null || echo "推送失败（不影响状态记录）"
+状态详情：https://upkea.github.io/mc-server-site/") || resp="推送请求失败"
+    echo "Server酱响应: ${resp:0:200}"
   elif [ "$NEW" = "online" ] && [ "$PREV" = "offline" ]; then
     echo ">>> 发送恢复提醒"
-    curl -sS --max-time 15 -X POST "https://sctapi.ftqq.com/${KEY}.send" \
+    resp=$(curl -sS --max-time 15 -X POST "https://sctapi.ftqq.com/${KEY}.send" \
       --data-urlencode "title=🟢 纯净生存服务器 已恢复" \
       --data-urlencode "desp=**服务器 ${SERVER} 已恢复在线**（${now}）
 
 玩家现在可以正常进服啦！
 
-状态详情：https://upkea.github.io/mc-server-site/" >/dev/null || echo "推送失败（不影响状态记录）"
+状态详情：https://upkea.github.io/mc-server-site/") || resp="推送请求失败"
+    echo "Server酱响应: ${resp:0:200}"
   fi
 fi
 
