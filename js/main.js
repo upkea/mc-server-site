@@ -124,13 +124,13 @@ var GROUP = {
       if (maxEl) maxEl.textContent = String(max);
     } else if (state === 'offline') {
       badge.setAttribute('data-state', 'offline');
-      statusText.textContent = '暂未开服';
-      if (statusText2) statusText2.textContent = '🔴 离线';
+      statusText.textContent = '未检测到开服';
+      if (statusText2) statusText2.textContent = '❓ 未检测到';
       if (maxEl) maxEl.textContent = '-';
     } else {
       badge.setAttribute('data-state', 'unknown');
-      statusText.textContent = '状态未知';
-      if (statusText2) statusText2.textContent = '⚪ 无法检测';
+      statusText.textContent = '检测服务暂不可用';
+      if (statusText2) statusText2.textContent = '⚪ 检测失败';
       if (maxEl) maxEl.textContent = '-';
     }
   }
