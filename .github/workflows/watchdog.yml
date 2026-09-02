@@ -1,0 +1,21 @@
+name: server-watchdog
+
+# 每 15 分钟检查一次服务器是否在线（GitHub 定时任务可能延迟数分钟）
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch: {}   # 允许手动触发一次，便于测试
+
+permissions:
+  contents: write          # 需要把状态文件提交回仓库供下次对比
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: 检查服务器状态并推送提醒
+        env:
+          SERVERCHAN_KEY: ${{ secrets.SERVERCHAN_KEY }}
+        run: bash .watchdog/check.sh

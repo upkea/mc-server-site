@@ -88,6 +88,16 @@ npx serve .
 > ✅ 已配置官方加群链接（`js/main.js` 顶部 `GROUP.officialUrl`），「一键加群」按钮手机/电脑都直接跳官方加群页。
 > 如果以后链接失效（`authKey` 过期），重新在 QQ 群管理 → 加群设置 → 「加群链接」生成新链接替换即可。
 
+## 六点五、掉线哨兵（GitHub Actions 定时监控）
+
+- 位置：`.github/workflows/watchdog.yml` + `.watchdog/check.sh`
+- 作用：每 15 分钟检测 `play.simpfun.cn:19573` 是否在线，**从在线变为掉线时**通过 Server酱推送微信提醒（状态不变不打扰，首次运行只记录不发提醒）
+- 微信推送需要先在 [Server酱](https://sct.ftqq.com) 微信扫码登录获取 SendKey，然后执行：
+  `gh secret set SERVERCHAN_KEY`（仓库 Secrets，不会写进代码）
+- 提醒后仍需人工到简幻欢面板完成签到并启动（平台机制不允许跳过签到自动开服）
+- 修改检测频率：编辑 `watchdog.yml` 里的 `cron: '*/15 * * * *'`（GitHub 定时任务会略有延迟）
+- ⚠️ 注意：GitHub 会**暂停**超过 60 天无仓库活动的定时任务；若提醒停止工作，去仓库 Actions 页手动开启，或推一次代码即可
+
 ## 七、SEO 与分享
 
 `index.html` 的 `<head>` 里已写好 `title` 和 `description`，用于搜索引擎收录和微信/QQ 分享卡片。
