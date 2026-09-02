@@ -8,17 +8,24 @@ set -euo pipefail
 SERVER="play.simpfun.cn:19573"
 STATE_FILE=".watchdog/state.json"
 KEY="${SERVERCHAN_KEY:-}"
+# ★ 腾讯云 SCF 国内探针（服务器关了状态协议，海外接口不可靠，用它做权威判断）
+PROBE_URL="https://1480104501-2q81sbsai9.ap-guangzhou.tencentscf.com"
 
 echo "== $(date '+%Y-%m-%d %H:%M:%S') 检查 ${SERVER} =="
 
-# 双接口交叉检测：任一确认在线即视为在线
+# 多源检测：云函数探针(权威) + 海外双接口兜底；任一确认在线即视为在线
+s0=$(curl -sS --max-time 12 "$PROBE_URL" 2>/dev/null || true)
 s1=$(curl -sS --max-time 12 "https://api.mcstatus.io/v2/status/java/${SERVER}" 2>/dev/null || true)
 s2=$(curl -sS --max-time 12 "https://api.mcsrvstat.us/3/${SERVER}" 2>/dev/null || true)
 
 online="false"
 responded="false"
 
-if [ -n "$s1" ] && echo "$s1" | jq -e 'type == "object"' >/dev/null 2>&1; then
+if [ -n "$s0" ] && echo "$s0" | jq -e 'type == "object"' >/dev/null 2>&1; then
+  responded="true"
+  if echo "$s0" | jq -e '.online == true' >/dev/null 2>&1; then online="true"; fi
+fi
+if [ "$online" = "false" ] && [ -n "$s1" ] && echo "$s1" | jq -e 'type == "object"' >/dev/null 2>&1; then
   responded="true"
   if echo "$s1" | jq -e '.online == true' >/dev/null 2>&1; then online="true"; fi
 fi

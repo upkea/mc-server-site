@@ -107,7 +107,11 @@ var GROUP = {
     flash(btn, '群号已复制 ✓');
   });
 
-  /* ---------- 3. 服务器在线状态（双接口比赛制 + 60s 缓存，秒级出结果） ---------- */
+  /* ---------- 3. 服务器在线状态（国内云函数探针优先 + 海外接口兜底 + 60s 缓存） ---------- */
+  // 说明：本服务器关闭了 MC 状态协议，海外接口读不到；
+  // 已用「腾讯云 SCF 云函数」做国内 TCP 连通探测（能连上=在运行），作为第一检测源。
+  var PROBE_URL = 'https://1480104501-2q81sbsai9.ap-guangzhou.tencentscf.com'; // ★你的云函数 URL
+
   function renderStatus(state, extra) {
     var badge = document.getElementById('statusBadge');
     var statusText = document.getElementById('statusText');
@@ -116,28 +120,29 @@ var GROUP = {
     if (!badge) return;
 
     if (state === 'online') {
-      var online = (extra && extra.players && extra.players.online) || 0;
-      var max = (extra && extra.players && extra.players.max) || '-';
+      var hasCount = !!(extra && extra.players && typeof extra.players.online === 'number');
+      var online = hasCount ? extra.players.online : 0;
+      var max = hasCount ? (extra.players.max || '-') : '-';
       badge.setAttribute('data-state', 'online');
-      statusText.textContent = '在线 · ' + online + ' 人游玩';
+      statusText.textContent = hasCount ? '在线 · ' + online + ' 人游玩' : '在线';
       if (statusText2) statusText2.textContent = '🟢 在线';
       if (maxEl) maxEl.textContent = String(max);
     } else if (state === 'offline') {
       badge.setAttribute('data-state', 'offline');
-      statusText.textContent = '未检测到开服';
-      if (statusText2) statusText2.textContent = '❓ 未检测到';
+      statusText.textContent = '未开服';
+      if (statusText2) statusText2.textContent = '🔴 未开服';
       if (maxEl) maxEl.textContent = '-';
     } else {
       badge.setAttribute('data-state', 'unknown');
-      statusText.textContent = '检测服务暂不可用';
-      if (statusText2) statusText2.textContent = '⚪ 检测失败';
+      statusText.textContent = '状态未知';
+      if (statusText2) statusText2.textContent = '⚪ 状态未知';
       if (maxEl) maxEl.textContent = '-';
     }
   }
 
   function fetchJson(url, timeoutMs) {
     var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, timeoutMs || 5000);
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, timeoutMs || 6000);
     return fetch(url, ctrl ? { signal: ctrl.signal } : {})
       .then(function (res) {
         clearTimeout(timer);
@@ -157,18 +162,20 @@ var GROUP = {
       localStorage.setItem(statusCacheKey, JSON.stringify({
         t: Date.now(),
         state: state,
-        players: extra && extra.players ? { online: extra.players.online, max: extra.players.max } : null
+        players: extra && extra.players && typeof extra.players.online === 'number'
+          ? { online: extra.players.online, max: extra.players.max } : null
       }));
     } catch (e) { /* 隐私模式等场景忽略 */ }
-    renderStatus(state, extra && extra.players
+    renderStatus(state, extra && extra.players && typeof extra.players.online === 'number'
       ? { players: { online: extra.players.online, max: extra.players.max } }
       : null);
   }
 
   function fetchStatus() {
-    // 比赛制双接口：mcstatus.io（响应快）排前，mcsrvstat.us 交叉验证兜底。
-    // 任一接口确认在线就立刻显示，不等待慢的那个；两个都离线才显示离线。
+    // 第一源：腾讯云 SCF 探针（国内 TCP 连通，准确）；后两个海外接口兜底。
+    // 任一确认在线立刻显示；全部返回离线才显示未开服。
     var urls = [
+      PROBE_URL,
       'https://api.mcstatus.io/v2/status/java/' + encodeURIComponent(SERVER.address),
       'https://api.mcsrvstat.us/3/' + encodeURIComponent(SERVER.address)
     ];
@@ -179,14 +186,13 @@ var GROUP = {
     function settle() {
       settled++;
       if (settled === urls.length && !finished) {
-        // 两个请求都有结论：收到过正常响应且都离线 → 离线；全部网络失败 → 未知
         renderAndCache(responded > 0 ? 'offline' : 'unknown', null);
         finished = true;
       }
     }
 
     urls.forEach(function (u) {
-      fetchJson(u, 5000).then(function (data) {
+      fetchJson(u, 6000).then(function (data) {
         if (finished) return;
         if (data && data.online) {
           finished = true;
@@ -201,8 +207,15 @@ var GROUP = {
     });
   }
 
-  // 说明：本服务器未开启状态协议，自动状态检测已停用；
-  // 页面状态以「能否进入」为准（见 index.html 文案）。
+  // 先读缓存（60 秒内）立即显示，再后台静默刷新最新状态
+  try {
+    var cachedStatus = JSON.parse(localStorage.getItem(statusCacheKey) || 'null');
+    if (cachedStatus && cachedStatus.t && Date.now() - cachedStatus.t < 60000) {
+      renderStatus(cachedStatus.state, cachedStatus.players ? { players: cachedStatus.players } : null);
+    }
+  } catch (e) { /* 忽略 */ }
+
+  fetchStatus();
 
   /* ---------- 4. 顶部导航：滚动阴影 + 移动端菜单 ---------- */
   var header = document.getElementById('siteHeader');
