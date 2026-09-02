@@ -107,7 +107,7 @@ var GROUP = {
     flash(btn, '群号已复制 ✓');
   });
 
-  /* ---------- 3. 服务器在线状态（mcsrvstat.us 免费 API） ---------- */
+  /* ---------- 3. 服务器在线状态（双接口比赛制 + 60s 缓存，秒级出结果） ---------- */
   function renderStatus(state, extra) {
     var badge = document.getElementById('statusBadge');
     var statusText = document.getElementById('statusText');
@@ -137,7 +137,7 @@ var GROUP = {
 
   function fetchJson(url, timeoutMs) {
     var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, timeoutMs || 7000);
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, timeoutMs || 5000);
     return fetch(url, ctrl ? { signal: ctrl.signal } : {})
       .then(function (res) {
         clearTimeout(timer);
@@ -150,27 +150,64 @@ var GROUP = {
       });
   }
 
-  function fetchStatus() {
-    // 双接口交叉验证：mcsrvstat.us 海外节点对部分国内服务器会误报离线，
-    // 所以同时查 mcstatus.io，任一接口确认在线即显示在线。
-    var urls = [
-      'https://api.mcsrvstat.us/3/' + encodeURIComponent(SERVER.address),
-      'https://api.mcstatus.io/v2/status/java/' + encodeURIComponent(SERVER.address)
-    ];
+  /* 结果写本地缓存（60 秒），方便重复访问时瞬间显示 */
+  var statusCacheKey = 'mc_status_' + SERVER.address;
+  function renderAndCache(state, extra) {
+    try {
+      localStorage.setItem(statusCacheKey, JSON.stringify({
+        t: Date.now(),
+        state: state,
+        players: extra && extra.players ? { online: extra.players.online, max: extra.players.max } : null
+      }));
+    } catch (e) { /* 隐私模式等场景忽略 */ }
+    renderStatus(state, extra && extra.players
+      ? { players: { online: extra.players.online, max: extra.players.max } }
+      : null);
+  }
 
-    Promise.all(urls.map(function (u) {
-      return fetchJson(u).catch(function () { return null; });
-    })).then(function (results) {
-      var a = results[0];
-      var b = results[1];
-      if (a && a.online) { renderStatus('online', a); return; }
-      if (b && b.online) { renderStatus('online', b); return; }
-      if (a || b) { renderStatus('offline'); return; }
-      renderStatus('unknown');
-    }).catch(function () {
-      renderStatus('unknown');
+  function fetchStatus() {
+    // 比赛制双接口：mcstatus.io（响应快）排前，mcsrvstat.us 交叉验证兜底。
+    // 任一接口确认在线就立刻显示，不等待慢的那个；两个都离线才显示离线。
+    var urls = [
+      'https://api.mcstatus.io/v2/status/java/' + encodeURIComponent(SERVER.address),
+      'https://api.mcsrvstat.us/3/' + encodeURIComponent(SERVER.address)
+    ];
+    var finished = false;
+    var settled = 0;
+    var responded = 0;
+
+    function settle() {
+      settled++;
+      if (settled === urls.length && !finished) {
+        // 两个请求都有结论：收到过正常响应且都离线 → 离线；全部网络失败 → 未知
+        renderAndCache(responded > 0 ? 'offline' : 'unknown', null);
+        finished = true;
+      }
+    }
+
+    urls.forEach(function (u) {
+      fetchJson(u, 5000).then(function (data) {
+        if (finished) return;
+        if (data && data.online) {
+          finished = true;
+          renderAndCache('online', data);
+          return;
+        }
+        responded++;
+        settle();
+      }).catch(function () {
+        settle();
+      });
     });
   }
+
+  // 先读缓存（60 秒内）立即显示，再后台静默刷新最新状态
+  try {
+    var cachedStatus = JSON.parse(localStorage.getItem(statusCacheKey) || 'null');
+    if (cachedStatus && cachedStatus.t && Date.now() - cachedStatus.t < 60000) {
+      renderStatus(cachedStatus.state, cachedStatus.players ? { players: cachedStatus.players } : null);
+    }
+  } catch (e) { /* 忽略 */ }
 
   fetchStatus();
 
