@@ -1,9 +1,9 @@
 name: server-watchdog
 
-# 每 10 分钟检查一次服务器是否在线（GitHub 定时任务可能延迟数分钟）
+# 每 5 分钟检查一次服务器是否在线（GitHub 定时任务最短间隔，实际可能延迟数分钟）
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch: {}   # 允许手动触发一次，便于测试
 
 permissions:

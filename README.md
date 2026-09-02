@@ -91,11 +91,11 @@ npx serve .
 ## 六点五、掉线哨兵（GitHub Actions 定时监控）
 
 - 位置：`.github/workflows/watchdog.yml` + `.watchdog/check.sh`
-- 作用：每 10 分钟检测 `play.simpfun.cn:19573` 是否在线，**从在线变为掉线时**通过 Server酱推送微信提醒（状态不变不打扰，首次运行只记录不发提醒）
+- 作用：每 5 分钟检测 `play.simpfun.cn:19573` 是否在线，**从在线变为掉线时**通过 Server酱推送微信提醒（状态不变不打扰，首次运行只记录不发提醒）
 - 微信推送需要先在 [Server酱](https://sct.ftqq.com) 微信扫码登录获取 SendKey，然后执行：
   `gh secret set SERVERCHAN_KEY`（仓库 Secrets，不会写进代码）
 - 提醒后仍需人工到简幻欢面板完成签到并启动（平台机制不允许跳过签到自动开服）
-- 修改检测频率：编辑 `watchdog.yml` 里的 `cron: '*/10 * * * *'`（GitHub 定时任务会略有延迟，最短可设 5 分钟）
+- 修改检测频率：编辑 `watchdog.yml` 里的 `cron: '*/5 * * * *'`（GitHub 定时任务会略有延迟，最短只能 5 分钟；想要 1 分钟级需改用 Cloudflare Worker）
 - ⚠️ 注意：GitHub 会**暂停**超过 60 天无仓库活动的定时任务；若提醒停止工作，去仓库 Actions 页手动开启，或推一次代码即可
 
 ## 七、SEO 与分享
