@@ -201,15 +201,8 @@ var GROUP = {
     });
   }
 
-  // 先读缓存（60 秒内）立即显示，再后台静默刷新最新状态
-  try {
-    var cachedStatus = JSON.parse(localStorage.getItem(statusCacheKey) || 'null');
-    if (cachedStatus && cachedStatus.t && Date.now() - cachedStatus.t < 60000) {
-      renderStatus(cachedStatus.state, cachedStatus.players ? { players: cachedStatus.players } : null);
-    }
-  } catch (e) { /* 忽略 */ }
-
-  fetchStatus();
+  // 说明：本服务器未开启状态协议，自动状态检测已停用；
+  // 页面状态以「能否进入」为准（见 index.html 文案）。
 
   /* ---------- 4. 顶部导航：滚动阴影 + 移动端菜单 ---------- */
   var header = document.getElementById('siteHeader');
