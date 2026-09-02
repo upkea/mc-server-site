@@ -49,7 +49,7 @@ fi
 printf '{"state":"%s","time":"%s"}\n' "$NEW" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$STATE_FILE"
 
 if [ -n "$KEY" ]; then
-  now=$(date '+%m-%d %H:%M')
+  now=$(TZ=Asia/Shanghai date '+%m-%d %H:%M')
   if [ "$NEW" = "offline" ] && [ "$PREV" = "online" ]; then
     echo ">>> 发送掉线提醒"
     resp=$(curl -sS --max-time 15 -X POST "https://sctapi.ftqq.com/${KEY}.send" \
